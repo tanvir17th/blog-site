@@ -40,12 +40,16 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <Navbar />
       <div className="sm:mx-auto sm:w-full sm:max-w-md mt-10">
-        <h2 className="text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+        <h2 className="text-center text-3xl font-extrabold text-gray-900">
+          Sign in to your account
+        </h2>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border">
-          {error && <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">{error}</div>}
+          {error && (
+            <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">{error}</div>
+          )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
@@ -55,7 +59,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
@@ -66,7 +70,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
@@ -84,6 +88,13 @@ export default function LoginPage() {
               {loading ? 'Logging in...' : 'Sign in'}
             </button>
           </form>
+
+          <div className="mt-4 text-center text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Register
+            </Link>
+          </div>
         </div>
       </div>
     </div>

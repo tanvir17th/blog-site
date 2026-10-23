@@ -2,18 +2,13 @@ import api from '@/utils/api';
 
 export const blogService = {
   async getAllBlogs(params = {}) {
-    try {
-      const query = new URLSearchParams();
-      if (params.title) query.append('title', params.title);
-      if (params.category) query.append('category', params.category);
-      
-      const queryString = query.toString() ? `?${query.toString()}` : '';
-      const res = await api.get(`/blogs${queryString}`);
-      return res.data;
-    } catch (error) {
-      console.error('Error fetching blogs from API:', error.response?.data || error.message);
-      throw error;
-    }
+    const query = new URLSearchParams();
+    if (params.title) query.append('title', params.title);
+    if (params.category) query.append('category', params.category);
+
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const res = await api.get(`/blogs${queryString}`);
+    return res.data;
   },
 
   async getBlogById(id) {

@@ -12,18 +12,23 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
+  const [error, setError] = useState('');
 
   const fetchBlogs = async () => {
     setLoading(true);
+    setError('');
     try {
       const params = {};
       if (search) params.title = search;
       if (category !== 'All') params.category = category;
 
       const response = await blogService.getAllBlogs(params);
-      setBlogs(response.data || response || []);
+      const data = response.data || response;
+      setBlogs(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load blogs:', err);
+      setError('Could not connect to API server. Ensure backend is running.');
+      setBlogs([]);
     } finally {
       setLoading(false);
     }
@@ -60,7 +65,11 @@ export default function HomePage() {
 
         {/* Content Section */}
         {loading ? (
-          <div className="text-center py-12">Loading blogs...</div>
+          <div className="text-center py-12 text-gray-600 font-medium">Loading blogs...</div>
+        ) : error ? (
+          <div className="text-center py-12 text-red-600 bg-red-50 rounded-lg p-4 max-w-lg mx-auto border border-red-200">
+            {error}
+          </div>
         ) : blogs.length === 0 ? (
           <div className="text-center py-12 text-gray-500">No blogs found.</div>
         ) : (
@@ -88,7 +97,7 @@ export default function HomePage() {
                     />
                     <div>
                       <p className="text-xs font-medium text-gray-900">
-                        {blog.author?.name || `${blog.author?.firstName || ''} ${blog.author?.lastName || ''}`}
+                        {blog.author?.firstName ? `${blog.author.firstName} ${blog.author.lastName}` : 'Anonymous'}
                       </p>
                       <p className="text-xs text-gray-500">
                         {new Date(blog.createdAt).toLocaleDateString()}

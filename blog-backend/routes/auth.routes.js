@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authCtrl = require('../controllers/auth.controller');
 
+// Ensure all handlers are valid functions
 router.post('/register', authCtrl.register);
 router.post('/login', authCtrl.login);
 router.post('/forgot-password', authCtrl.forgotPassword);
