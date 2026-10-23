@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { authService } from '@/services/auth.service';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +11,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -22,14 +20,20 @@ export default function LoginPage() {
 
     try {
       const response = await authService.login({ email, password });
-      const token = response.token || response.data?.token;
+      
+      const resData = response.data || response;
+      const token = resData.token;
+      const userData = resData.user;
+
       if (token) {
-        await login(token);
-        router.push('/dashboard');
+        await login(token, userData);
+        // Direct redirect guarantees page navigation
+        window.location.href = '/dashboard';
       } else {
-        setError('Token missing in API response');
+        setError('Token missing from backend response');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.response?.data?.message || 'Invalid email or password.');
     } finally {
       setLoading(false);
@@ -57,6 +61,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 required
+                suppressHydrationWarning
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500"
@@ -68,6 +73,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
+                suppressHydrationWarning
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500"
@@ -85,7 +91,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
             >
-              {loading ? 'Logging in...' : 'Sign in'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 

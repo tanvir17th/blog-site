@@ -1,27 +1,17 @@
 const jwt = require('jsonwebtoken');
 
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: 'Authentication token required' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
+module.exports = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
-    req.user = user; // contains id, email, role
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    req.user = decoded;
     next();
-  });
-};
-
-const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== 'Admin') {
-    return res.status(403).json({ message: 'Access denied. Admin role required.' });
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid or expired token.' });
   }
-  next();
 };
-
-module.exports = { authenticateToken, requireAdmin };

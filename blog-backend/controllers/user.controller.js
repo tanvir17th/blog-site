@@ -1,91 +1,66 @@
 const db = require('../config/db');
-const bcrypt = require('bcryptjs');
+
+const formatImageUrl = (pathStr) => {
+  if (!pathStr) return null;
+  if (pathStr.startsWith('http://') || pathStr.startsWith('https://')) return pathStr;
+  return `http://localhost:5000${pathStr.startsWith('/') ? '' : '/'}${pathStr}`;
+};
 
 exports.getProfile = async (req, res) => {
   try {
+    const userId = req.user.id;
     const [users] = await db.query(
-      'SELECT id, firstName, lastName, email, role, isActive, profileImage, createdAt FROM users WHERE id = ?',
-      [req.user.id]
+      'SELECT id, firstName, lastName, email, role, profileImage FROM users WHERE id = ?',
+      [userId]
     );
-    if (users.length === 0) return res.status(404).json({ message: 'User not found' });
-    res.json(users[0]);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
 
-exports.updateProfile = async (req, res) => {
-  try {
-    const { firstName, lastName } = req.body;
-    await db.query('UPDATE users SET firstName = ?, lastName = ? WHERE id = ?', [
-      firstName,
-      lastName,
-      req.user.id,
-    ]);
-    res.json({ message: 'Profile updated successfully' });
+    if (!users || users.length === 0) return res.status(404).json({ message: 'User not found' });
+
+    const user = users[0];
+    user.profileImage = formatImageUrl(user.profileImage);
+
+    return res.json(user);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    return res.status(500).json({ message: 'Error fetching profile', error: err.message });
   }
 };
 
 exports.updateProfileImage = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: 'Image file is required' });
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
 
-    const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
-    await db.query('UPDATE users SET profileImage = ? WHERE id = ?', [imageUrl, req.user.id]);
+    const userId = req.user.id;
+    const relativePath = `/uploads/${req.file.filename}`;
 
-    res.json({ message: 'Profile image updated', profileImage: imageUrl });
+    // Save relative path into database
+    await db.query('UPDATE users SET profileImage = ? WHERE id = ?', [relativePath, userId]);
+
+    const fullUrl = formatImageUrl(relativePath);
+
+    return res.json({
+      message: 'Profile image updated successfully',
+      profileImage: fullUrl,
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    return res.status(500).json({ message: 'Error updating image', error: err.message });
   }
 };
 
-exports.changePassword = async (req, res) => {
+exports.updateProfile = async (req, res) => {
   try {
-    const { password } = req.body;
-    if (!password) return res.status(400).json({ message: 'New password required' });
+    const userId = req.user.id;
+    const { firstName, lastName } = req.body;
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await db.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, req.user.id]);
+    await db.query('UPDATE users SET firstName = ?, lastName = ? WHERE id = ?', [
+      firstName,
+      lastName,
+      userId,
+    ]);
 
-    res.json({ message: 'Password updated successfully' });
+    return res.json({ message: 'Profile details updated successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
-
-// Admin Endpoints
-exports.getAllUsers = async (req, res) => {
-  try {
-    const [users] = await db.query(
-      'SELECT id, firstName, lastName, email, role, isActive, profileImage, createdAt FROM users'
-    );
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
-
-exports.getUserById = async (req, res) => {
-  try {
-    const [users] = await db.query(
-      'SELECT id, firstName, lastName, email, role, isActive, profileImage, createdAt FROM users WHERE id = ?',
-      [req.params.id]
-    );
-    if (users.length === 0) return res.status(404).json({ message: 'User not found' });
-    res.json(users[0]);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-};
-
-exports.updateUserStatus = async (req, res) => {
-  try {
-    const { isActive } = req.body;
-    await db.query('UPDATE users SET isActive = ? WHERE id = ?', [isActive, req.params.id]);
-    res.json({ message: 'User status updated successfully' });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    return res.status(500).json({ message: 'Error updating profile', error: err.message });
   }
 };

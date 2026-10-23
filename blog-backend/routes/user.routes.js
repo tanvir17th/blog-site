@@ -1,24 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const path = require('path');
+const multer = require('multer');
 const userCtrl = require('../controllers/user.controller');
-const { authenticateToken, requireAdmin } = require('../middleware/auth.middleware');
+const authMiddleware = require('../middleware/auth.middleware');
 
+// Configure Multer Storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `profile-${uniqueSuffix}${ext}`);
+  },
 });
+
 const upload = multer({ storage });
 
-router.get('/profile', authenticateToken, userCtrl.getProfile);
-router.put('/profile/update', authenticateToken, userCtrl.updateProfile);
-router.patch('/profile/image', authenticateToken, upload.single('image'), userCtrl.updateProfileImage);
-router.patch('/password', authenticateToken, userCtrl.changePassword);
-
-// Admin Routes
-router.get('/', authenticateToken, requireAdmin, userCtrl.getAllUsers);
-router.get('/:id', authenticateToken, requireAdmin, userCtrl.getUserById);
-router.patch('/:id/status', authenticateToken, requireAdmin, userCtrl.updateUserStatus);
+// User Routes
+router.get('/profile', authMiddleware, userCtrl.getProfile);
+router.put('/profile', authMiddleware, userCtrl.updateProfile);
+router.patch('/profile', authMiddleware, userCtrl.updateProfile); // Added fallback for PATCH
+router.post('/profile/image', authMiddleware, upload.single('image'), userCtrl.updateProfileImage);
 
 module.exports = router;

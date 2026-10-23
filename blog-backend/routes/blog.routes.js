@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const blogCtrl = require('../controllers/blog.controller');
-const { authenticateToken } = require('../middleware/auth.middleware');
+const authMiddleware = require('../middleware/auth.middleware');
 
+// Public blog routes
 router.get('/', blogCtrl.getAllBlogs);
 router.get('/:id', blogCtrl.getBlogById);
-router.post('/create', authenticateToken, blogCtrl.createBlog);
-router.put('/update/:id', authenticateToken, blogCtrl.updateBlog);
-router.delete('/delete/:id', authenticateToken, blogCtrl.deleteBlog);
+
+// Protected blog routes
+router.post('/', authMiddleware, blogCtrl.createBlog);
+router.put('/:id', authMiddleware, blogCtrl.updateBlog);
+router.delete('/:id', authMiddleware, blogCtrl.deleteBlog);
 
 module.exports = router;

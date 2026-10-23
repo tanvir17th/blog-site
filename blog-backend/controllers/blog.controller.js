@@ -1,91 +1,52 @@
 const db = require('../config/db');
 
+// GET ALL BLOGS
 exports.getAllBlogs = async (req, res) => {
   try {
-    const { title, category } = req.query;
-    let sql = `
-      SELECT b.*, u.firstName, u.lastName, u.email, u.profileImage 
+    const [blogs] = await db.query(`
+      SELECT b.*, u.firstName, u.lastName, u.profileImage 
       FROM blogs b 
-      JOIN users u ON b.userId = u.id 
-      WHERE 1=1
-    `;
-    const params = [];
-
-    if (title) {
-      sql += ' AND b.blogTitle LIKE ?';
-      params.push(`%${title}%`);
-    }
-
-    if (category && category !== 'All') {
-      sql += ' AND b.category = ?';
-      params.push(category);
-    }
-
-    sql += ' ORDER BY b.createdAt DESC';
-
-    const [rows] = await db.query(sql, params);
-
-    const formattedBlogs = rows.map((row) => ({
-      _id: row.id,
-      id: row.id,
-      blogTitle: row.blogTitle,
-      blog: row.blog,
-      category: row.category,
-      createdAt: row.createdAt,
-      author: {
-        id: row.userId,
-        firstName: row.firstName,
-        lastName: row.lastName,
-        email: row.email,
-        profileImage: row.profileImage,
-      },
-    }));
-
-    res.json(formattedBlogs);
+      LEFT JOIN users u ON b.userId = u.id 
+      ORDER BY b.createdAt DESC
+    `);
+    return res.json(blogs);
   } catch (err) {
-    res.status(500).json({ message: 'Server error loading blogs', error: err.message });
+    console.error('Get all blogs error:', err);
+    return res.status(500).json({ message: 'Error fetching blogs', error: err.message });
   }
 };
 
+// GET SINGLE BLOG BY ID
 exports.getBlogById = async (req, res) => {
   try {
-    const [rows] = await db.query(
-      `SELECT b.*, u.firstName, u.lastName, u.email, u.profileImage 
+    const { id } = req.params;
+    const [blogs] = await db.query(
+      `SELECT b.*, u.firstName, u.lastName, u.profileImage 
        FROM blogs b 
-       JOIN users u ON b.userId = u.id 
+       LEFT JOIN users u ON b.userId = u.id 
        WHERE b.id = ?`,
-      [req.params.id]
+      [id]
     );
 
-    if (rows.length === 0) return res.status(404).json({ message: 'Blog Not Found' });
+    if (!blogs || blogs.length === 0) {
+      return res.status(404).json({ message: 'Blog not found' });
+    }
 
-    const row = rows[0];
-    res.json({
-      _id: row.id,
-      id: row.id,
-      blogTitle: row.blogTitle,
-      blog: row.blog,
-      category: row.category,
-      createdAt: row.createdAt,
-      author: {
-        id: row.userId,
-        firstName: row.firstName,
-        lastName: row.lastName,
-        profileImage: row.profileImage,
-      },
-    });
+    return res.json(blogs[0]);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    console.error('Get blog error:', err);
+    return res.status(500).json({ message: 'Error fetching blog details', error: err.message });
   }
 };
 
+// CREATE NEW BLOG
 exports.createBlog = async (req, res) => {
   try {
     const { blogTitle, blog, category } = req.body;
     const userId = req.user.id;
 
     if (!blogTitle || !blog || !category) {
-      return res.status(400).json({ message: 'Blog title, content, and category are required' });
+      return res.status(400).json({ message: 'Title, content, and category are required' });
     }
 
     const [result] = await db.query(
@@ -93,49 +54,42 @@ exports.createBlog = async (req, res) => {
       [blogTitle, blog, category, userId]
     );
 
-    res.status(201).json({ message: 'Blog published successfully', blogId: result.insertId });
+    return res.status(201).json({
+      message: 'Blog created successfully',
+      blogId: result.insertId,
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Server error creating blog', error: err.message });
+    console.error('Create blog error:', err);
+    return res.status(500).json({ message: 'Error creating blog', error: err.message });
   }
 };
 
+// UPDATE BLOG
 exports.updateBlog = async (req, res) => {
   try {
+    const { id } = req.params;
     const { blogTitle, blog, category } = req.body;
-    const blogId = req.params.id;
-
-    const [existing] = await db.query('SELECT * FROM blogs WHERE id = ?', [blogId]);
-    if (existing.length === 0) return res.status(404).json({ message: 'Blog not found' });
-
-    if (req.user.role !== 'Admin' && existing[0].userId !== req.user.id) {
-      return res.status(403).json({ message: 'You are not authorized to update this blog' });
-    }
 
     await db.query(
       'UPDATE blogs SET blogTitle = ?, blog = ?, category = ? WHERE id = ?',
-      [blogTitle, blog, category, blogId]
+      [blogTitle, blog, category, id]
     );
 
-    res.json({ message: 'Blog updated successfully' });
+    return res.json({ message: 'Blog updated successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error updating blog', error: err.message });
+    console.error('Update blog error:', err);
+    return res.status(500).json({ message: 'Error updating blog', error: err.message });
   }
 };
 
+// DELETE BLOG
 exports.deleteBlog = async (req, res) => {
   try {
-    const blogId = req.params.id;
-
-    const [existing] = await db.query('SELECT * FROM blogs WHERE id = ?', [blogId]);
-    if (existing.length === 0) return res.status(404).json({ message: 'Blog not found' });
-
-    if (req.user.role !== 'Admin' && existing[0].userId !== req.user.id) {
-      return res.status(403).json({ message: 'You are not authorized to delete this blog' });
-    }
-
-    await db.query('DELETE FROM blogs WHERE id = ?', [blogId]);
-    res.json({ message: 'Blog deleted successfully' });
+    const { id } = req.params;
+    await db.query('DELETE FROM blogs WHERE id = ?', [id]);
+    return res.json({ message: 'Blog deleted successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error deleting blog', error: err.message });
+    console.error('Delete blog error:', err);
+    return res.status(500).json({ message: 'Error deleting blog', error: err.message });
   }
 };

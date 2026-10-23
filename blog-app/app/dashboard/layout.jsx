@@ -9,9 +9,11 @@ export default function DashboardLayout({ children }) {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar />
-        <div className="flex flex-1 pt-12">
+        <div className="flex flex-1">
           <Sidebar />
-          <main className="flex-1 p-6 md:p-8 overflow-y-auto">{children}</main>
+          <main className="flex-1 p-8 pt-20 overflow-y-auto">
+            {children}
+          </main>
         </div>
       </div>
     </ProtectedRoute>
